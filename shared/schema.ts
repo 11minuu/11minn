@@ -1,13 +1,22 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, decimal, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, decimal, jsonb, boolean, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export const deliveryStatusEnum = pgEnum("delivery_status", [
+  "pending",
+  "assigned",
+  "picking_up",
+  "en_route",
+  "delivered",
+  "cancelled"
+]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  hashedPassword: text("hashed_password").notNull(),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   currentLocation: jsonb("current_location").$type<{
@@ -22,13 +31,13 @@ export const users = pgTable("users", {
 export const drivers = pgTable("drivers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  phone: text("phone").notNull(),
+  phone: text("phone").notNull().unique(),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("5.00"),
   currentLocation: jsonb("current_location").$type<{
     lat: number;
     lng: number;
   }>(),
-  isActive: text("is_active").notNull().default("true"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -50,7 +59,7 @@ export const deliveries = pgTable("deliveries", {
   packageSize: text("package_size").notNull(),
   urgency: text("urgency").notNull(),
   specialInstructions: text("special_instructions"),
-  status: text("status").notNull().default("pending"), // pending, assigned, picking_up, en_route, delivered, cancelled
+  status: deliveryStatusEnum("status").notNull().default("pending"),
   deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).notNull(),
   serviceFee: decimal("service_fee", { precision: 10, scale: 2 }).notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),

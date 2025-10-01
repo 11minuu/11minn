@@ -1,5 +1,6 @@
-import { type User, type InsertUser, type Driver, type InsertDriver, type Delivery, type InsertDelivery } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type User, type InsertUser, type Driver, type InsertDriver, type Delivery, type InsertDelivery, users, drivers, deliveries } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, sql, and, notInArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -26,192 +27,169 @@ export interface IStorage {
   updateDeliveryDriver(deliveryId: string, driverId: string): Promise<Delivery>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private drivers: Map<string, Driver>;
-  private deliveries: Map<string, Delivery>;
-
-  constructor() {
-    this.users = new Map();
-    this.drivers = new Map();
-    this.deliveries = new Map();
-
-    // Initialize with sample drivers
-    this.initializeDrivers();
-  }
-
-  private initializeDrivers() {
-    const sampleDrivers: InsertDriver[] = [
-      { name: "Marcus Johnson", phone: "+1234567890" },
-      { name: "Sarah Kim", phone: "+1234567891" },
-      { name: "David Lee", phone: "+1234567892" },
-    ];
-
-    sampleDrivers.forEach(driver => {
-      const id = randomUUID();
-      this.drivers.set(id, {
-        ...driver,
-        id,
-        rating: "5.00",
-        isActive: "true",
-        currentLocation: {
-          lat: 37.7749 + (Math.random() - 0.5) * 0.1,
-          lng: -122.4194 + (Math.random() - 0.5) * 0.1,
-        },
-        createdAt: new Date(),
-      });
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
+  // User operations
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = {
-      ...insertUser,
-      id,
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      currentLocation: null,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async updateUserLocation(userId: string, location: { lat: number; lng: number; address: string; accuracy: number }): Promise<User> {
-    const user = this.users.get(userId);
-    if (!user) throw new Error("User not found");
+    const [user] = await db
+      .update(users)
+      .set({ currentLocation: location })
+      .where(eq(users.id, userId))
+      .returning();
     
-    const updatedUser = { ...user, currentLocation: location };
-    this.users.set(userId, updatedUser);
-    return updatedUser;
+    if (!user) throw new Error("User not found");
+    return user;
   }
 
   async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User> {
-    const user = this.users.get(userId);
-    if (!user) throw new Error("User not found");
+    const [user] = await db
+      .update(users)
+      .set({ 
+        stripeCustomerId, 
+        stripeSubscriptionId 
+      })
+      .where(eq(users.id, userId))
+      .returning();
     
-    const updatedUser = { ...user, stripeCustomerId, stripeSubscriptionId };
-    this.users.set(userId, updatedUser);
-    return updatedUser;
+    if (!user) throw new Error("User not found");
+    return user;
   }
 
+  // Driver operations
   async getDriver(id: string): Promise<Driver | undefined> {
-    return this.drivers.get(id);
+    const [driver] = await db.select().from(drivers).where(eq(drivers.id, id));
+    return driver || undefined;
   }
 
   async getAllActiveDrivers(): Promise<Driver[]> {
-    return Array.from(this.drivers.values()).filter(driver => driver.isActive === "true");
+    return await db
+      .select()
+      .from(drivers)
+      .where(eq(drivers.isActive, true));
   }
 
   async createDriver(insertDriver: InsertDriver): Promise<Driver> {
-    const id = randomUUID();
-    const driver: Driver = {
-      ...insertDriver,
-      id,
-      rating: "5.00",
-      isActive: "true",
-      currentLocation: null,
-      createdAt: new Date(),
-    };
-    this.drivers.set(id, driver);
+    const [driver] = await db
+      .insert(drivers)
+      .values(insertDriver)
+      .returning();
     return driver;
   }
 
   async updateDriverLocation(driverId: string, location: { lat: number; lng: number }): Promise<Driver> {
-    const driver = this.drivers.get(driverId);
-    if (!driver) throw new Error("Driver not found");
+    const [driver] = await db
+      .update(drivers)
+      .set({ currentLocation: location })
+      .where(eq(drivers.id, driverId))
+      .returning();
     
-    const updatedDriver = { ...driver, currentLocation: location };
-    this.drivers.set(driverId, updatedDriver);
-    return updatedDriver;
+    if (!driver) throw new Error("Driver not found");
+    return driver;
   }
 
+  // Delivery operations
   async getDelivery(id: string): Promise<Delivery | undefined> {
-    return this.deliveries.get(id);
+    const [delivery] = await db.select().from(deliveries).where(eq(deliveries.id, id));
+    return delivery || undefined;
   }
 
   async getDeliveriesByUser(userId: string): Promise<Delivery[]> {
-    return Array.from(this.deliveries.values())
-      .filter(delivery => delivery.userId === userId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return await db
+      .select()
+      .from(deliveries)
+      .where(eq(deliveries.userId, userId))
+      .orderBy(desc(deliveries.createdAt));
   }
 
   async getActiveDeliveriesByUser(userId: string): Promise<Delivery[]> {
-    return Array.from(this.deliveries.values())
-      .filter(delivery => delivery.userId === userId && !['delivered', 'cancelled'].includes(delivery.status))
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return await db
+      .select()
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.userId, userId),
+          notInArray(deliveries.status, ['delivered', 'cancelled'])
+        )
+      )
+      .orderBy(desc(deliveries.createdAt));
   }
 
   async getDeliveriesByDriver(driverId: string): Promise<Delivery[]> {
-    return Array.from(this.deliveries.values())
-      .filter(delivery => delivery.driverId === driverId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return await db
+      .select()
+      .from(deliveries)
+      .where(eq(deliveries.driverId, driverId))
+      .orderBy(desc(deliveries.createdAt));
   }
 
   async createDelivery(insertDelivery: InsertDelivery): Promise<Delivery> {
-    const id = randomUUID();
-    const now = new Date();
-    const delivery: Delivery = {
-      ...insertDelivery,
-      specialInstructions: insertDelivery.specialInstructions || null,
-      id,
-      status: "pending",
-      driverId: null,
-      estimatedDeliveryTime: null,
-      actualDeliveryTime: null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.deliveries.set(id, delivery);
+    const [delivery] = await db
+      .insert(deliveries)
+      .values({
+        ...insertDelivery,
+        specialInstructions: insertDelivery.specialInstructions || null,
+      })
+      .returning();
     return delivery;
   }
 
   async updateDeliveryStatus(deliveryId: string, status: string, driverId?: string): Promise<Delivery> {
-    const delivery = this.deliveries.get(deliveryId);
-    if (!delivery) throw new Error("Delivery not found");
-    
-    const updatedDelivery = {
-      ...delivery,
+    const updateData: any = {
       status,
-      driverId: driverId || delivery.driverId,
       updatedAt: new Date(),
     };
     
-    this.deliveries.set(deliveryId, updatedDelivery);
-    return updatedDelivery;
+    if (driverId) {
+      updateData.driverId = driverId;
+    }
+
+    const [delivery] = await db
+      .update(deliveries)
+      .set(updateData)
+      .where(eq(deliveries.id, deliveryId))
+      .returning();
+    
+    if (!delivery) throw new Error("Delivery not found");
+    return delivery;
   }
 
   async updateDeliveryDriver(deliveryId: string, driverId: string): Promise<Delivery> {
-    const delivery = this.deliveries.get(deliveryId);
+    const [delivery] = await db
+      .update(deliveries)
+      .set({
+        driverId,
+        status: "assigned",
+        estimatedDeliveryTime: new Date(Date.now() + 11 * 60 * 1000), // 11 minutes from now
+        updatedAt: new Date(),
+      })
+      .where(eq(deliveries.id, deliveryId))
+      .returning();
+    
     if (!delivery) throw new Error("Delivery not found");
-    
-    const updatedDelivery = {
-      ...delivery,
-      driverId,
-      status: "assigned",
-      estimatedDeliveryTime: new Date(Date.now() + 11 * 60 * 1000), // 11 minutes from now
-      updatedAt: new Date(),
-    };
-    
-    this.deliveries.set(deliveryId, updatedDelivery);
-    return updatedDelivery;
+    return delivery;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
