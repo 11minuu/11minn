@@ -169,6 +169,7 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const delivery: Delivery = {
       ...insertDelivery,
+      specialInstructions: insertDelivery.specialInstructions || null,
       id,
       status: "pending",
       driverId: null,

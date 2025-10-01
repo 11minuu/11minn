@@ -11,7 +11,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-09-30.clover",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -192,13 +192,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (user.stripeSubscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        const invoice = await stripe.invoices.retrieve(subscription.latest_invoice as string);
-        const paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent as string);
+        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
+          expand: ['latest_invoice.payment_intent'],
+        });
+        const invoice = subscription.latest_invoice as any;
+        const paymentIntent = invoice?.payment_intent;
 
         return res.json({
           subscriptionId: subscription.id,
-          clientSecret: paymentIntent.client_secret,
+          clientSecret: paymentIntent?.client_secret || null,
         });
       }
 
