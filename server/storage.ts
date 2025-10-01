@@ -1,6 +1,11 @@
 import { type User, type InsertUser, type Driver, type InsertDriver, type Delivery, type InsertDelivery, users, drivers, deliveries } from "@shared/schema";
 import { db } from "./db";
+import { pool } from "./db";
 import { eq, desc, sql, and, notInArray } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User operations
@@ -25,9 +30,17 @@ export interface IStorage {
   createDelivery(delivery: InsertDelivery): Promise<Delivery>;
   updateDeliveryStatus(deliveryId: string, status: string, driverId?: string): Promise<Delivery>;
   updateDeliveryDriver(deliveryId: string, driverId: string): Promise<Delivery>;
+
+  // Session store
+  sessionStore: session.SessionStore;
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.SessionStore;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ pool, createTableIfMissing: true });
+  }
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -45,9 +58,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    const { password, ...userData } = insertUser;
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values({ ...userData, hashedPassword: password })
       .returning();
     return user;
   }

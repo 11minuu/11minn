@@ -5,6 +5,7 @@ import Stripe from "stripe";
 import { storage } from "./storage";
 import { insertDeliverySchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth } from "./auth";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -16,6 +17,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+
+  // Setup authentication routes
+  setupAuth(app);
 
   // WebSocket server for real-time tracking
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });

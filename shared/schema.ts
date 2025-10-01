@@ -75,6 +75,9 @@ export const insertUserSchema = createInsertSchema(users).omit({
   stripeCustomerId: true,
   stripeSubscriptionId: true,
   currentLocation: true,
+  hashedPassword: true,
+}).extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export const insertDriverSchema = createInsertSchema(drivers).omit({
