@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Store, MapPin, Package, MessageSquare } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
 
 interface DeliveryFormProps {
   userLocation: {
@@ -26,7 +25,6 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
   const [specialInstructions, setSpecialInstructions] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   const deliveryMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -74,17 +72,7 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
     const selectedFees = fees[urgency as keyof typeof fees];
     const total = selectedFees.delivery + selectedFees.service;
 
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to request a delivery",
-        variant: "destructive",
-      });
-      return;
-    }
-
     deliveryMutation.mutate({
-      userId: user.id,
       pickupLocation: {
         lat: 37.7749,
         lng: -122.4194,
