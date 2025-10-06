@@ -19,7 +19,6 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
   const [pickupLocation, setPickupLocation] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [packageSize, setPackageSize] = useState("small");
-  const [urgency, setUrgency] = useState("express");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const { toast } = useToast();
 
@@ -35,16 +34,10 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
       return;
     }
 
-    const fees = {
-      express: { delivery: 15, service: 2.5 },
-      standard: { delivery: 10, service: 2 },
-      economy: { delivery: 7, service: 1.5 },
-    };
+    const deliveryFee = 15;
+    const serviceFee = 2.5;
+    const total = deliveryFee + serviceFee;
 
-    const selectedFees = fees[urgency as keyof typeof fees];
-    const total = selectedFees.delivery + selectedFees.service;
-
-    const urgencyText = urgency === 'express' ? '11 MIN Express' : urgency === 'standard' ? '30 MIN Standard' : '1 HOUR Economy';
     const packageSizeText = packageSize === 'small' ? 'Small (< 5 lbs)' : packageSize === 'medium' ? 'Medium (5-20 lbs)' : packageSize === 'large' ? 'Large (20-50 lbs)' : 'Extra Large (50+ lbs)';
 
     const mapLink = `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}`;
@@ -65,11 +58,9 @@ ${itemDescription}
 
 📏 *Package Size:* ${packageSizeText}
 
-⚡ *Urgency:* ${urgencyText}
-
 ${specialInstructions ? `📝 *Special Instructions:*\n${specialInstructions}\n\n` : ''}💰 *Fees:*
-• Delivery Fee: $${selectedFees.delivery.toFixed(2)}
-• Service Fee: $${selectedFees.service.toFixed(2)}
+• Delivery Fee: $${deliveryFee.toFixed(2)}
+• Service Fee: $${serviceFee.toFixed(2)}
 • Total: $${total.toFixed(2)}`;
 
     const whatsappNumber = '96171294697';
@@ -149,35 +140,19 @@ ${specialInstructions ? `📝 *Special Instructions:*\n${specialInstructions}\n\
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Package Size</label>
-                <Select value={packageSize} onValueChange={setPackageSize}>
-                  <SelectTrigger className="bg-input border-border" data-testid="select-package-size">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small">Small (&lt; 5 lbs)</SelectItem>
-                    <SelectItem value="medium">Medium (5-20 lbs)</SelectItem>
-                    <SelectItem value="large">Large (20-50 lbs)</SelectItem>
-                    <SelectItem value="xlarge">Extra Large (50+ lbs)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Urgency</label>
-                <Select value={urgency} onValueChange={setUrgency}>
-                  <SelectTrigger className="bg-input border-border" data-testid="select-urgency">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="express">11 MIN Express - $15</SelectItem>
-                    <SelectItem value="standard">30 MIN Standard - $10</SelectItem>
-                    <SelectItem value="economy">1 HOUR Economy - $7</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2">Package Size</label>
+              <Select value={packageSize} onValueChange={setPackageSize}>
+                <SelectTrigger className="bg-input border-border" data-testid="select-package-size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Small (&lt; 5 lbs)</SelectItem>
+                  <SelectItem value="medium">Medium (5-20 lbs)</SelectItem>
+                  <SelectItem value="large">Large (20-50 lbs)</SelectItem>
+                  <SelectItem value="xlarge">Extra Large (50+ lbs)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -199,20 +174,20 @@ ${specialInstructions ? `📝 *Special Instructions:*\n${specialInstructions}\n\
               <div className="flex justify-between items-center mb-3">
                 <span className="text-muted-foreground">Delivery Fee</span>
                 <span className="font-semibold" data-testid="text-delivery-fee">
-                  ${urgency === 'express' ? '15.00' : urgency === 'standard' ? '10.00' : '7.00'}
+                  $15.00
                 </span>
               </div>
               <div className="flex justify-between items-center mb-3">
                 <span className="text-muted-foreground">Service Fee</span>
                 <span className="font-semibold" data-testid="text-service-fee">
-                  ${urgency === 'express' ? '2.50' : urgency === 'standard' ? '2.00' : '1.50'}
+                  $2.50
                 </span>
               </div>
               <div className="border-t border-border pt-3 mt-3">
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-bold">Estimated Total</span>
                   <span className="text-3xl font-black gradient-text" data-testid="text-total">
-                    ${urgency === 'express' ? '17.50' : urgency === 'standard' ? '12.00' : '8.50'}
+                    $17.50
                   </span>
                 </div>
               </div>
