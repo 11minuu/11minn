@@ -4,8 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { Store, MapPin, Package, MessageSquare } from "lucide-react";
 
 interface DeliveryFormProps {
@@ -24,32 +22,6 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
   const [urgency, setUrgency] = useState("express");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const deliveryMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/deliveries", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Delivery Requested",
-        description: "Your delivery has been submitted successfully!",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/deliveries"] });
-      // Reset form
-      setPickupLocation("");
-      setItemDescription("");
-      setSpecialInstructions("");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,25 +44,48 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
     const selectedFees = fees[urgency as keyof typeof fees];
     const total = selectedFees.delivery + selectedFees.service;
 
-    deliveryMutation.mutate({
-      pickupLocation: {
-        lat: 37.7749,
-        lng: -122.4194,
-        address: pickupLocation,
-      },
-      deliveryLocation: {
-        lat: userLocation.lat,
-        lng: userLocation.lng,
-        address: userLocation.address,
-      },
-      itemDescription,
-      packageSize,
-      urgency,
-      specialInstructions,
-      deliveryFee: selectedFees.delivery.toString(),
-      serviceFee: selectedFees.service.toString(),
-      totalAmount: total.toString(),
+    const urgencyText = urgency === 'express' ? '11 MIN Express' : urgency === 'standard' ? '30 MIN Standard' : '1 HOUR Economy';
+    const packageSizeText = packageSize === 'small' ? 'Small (< 5 lbs)' : packageSize === 'medium' ? 'Medium (5-20 lbs)' : packageSize === 'large' ? 'Large (20-50 lbs)' : 'Extra Large (50+ lbs)';
+
+    const mapLink = `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}`;
+
+    const message = `🚚 *NEW DELIVERY REQUEST*
+
+📍 *Pickup Location:*
+${pickupLocation}
+
+📍 *Delivery Location:*
+${userLocation.address}
+
+🗺️ *View on Map:*
+${mapLink}
+
+📦 *Item Description:*
+${itemDescription}
+
+📏 *Package Size:* ${packageSizeText}
+
+⚡ *Urgency:* ${urgencyText}
+
+${specialInstructions ? `📝 *Special Instructions:*\n${specialInstructions}\n\n` : ''}💰 *Fees:*
+• Delivery Fee: $${selectedFees.delivery.toFixed(2)}
+• Service Fee: $${selectedFees.service.toFixed(2)}
+• Total: $${total.toFixed(2)}`;
+
+    const whatsappNumber = '96171294697';
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+
+    window.open(whatsappUrl, '_blank');
+
+    toast({
+      title: "Opening WhatsApp",
+      description: "Your delivery details are ready to send!",
     });
+
+    setPickupLocation("");
+    setItemDescription("");
+    setSpecialInstructions("");
   };
 
   return (
@@ -225,11 +220,10 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
 
             <Button
               type="submit"
-              disabled={deliveryMutation.isPending}
               className="w-full py-6 bg-primary text-primary-foreground hover:shadow-cyan-glow-lg transition-all text-lg font-bold"
               data-testid="button-submit-delivery"
             >
-              {deliveryMutation.isPending ? "Submitting..." : "Request Delivery Now"}
+              Start Delivery
             </Button>
           </form>
         </div>
