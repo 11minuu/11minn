@@ -4,7 +4,6 @@ import LocationModal from "@/components/location-modal";
 import HeroSection from "@/components/hero-section";
 import DeliveryForm from "@/components/delivery-form";
 import LiveTracking from "@/components/live-tracking";
-import SubscriptionPlans from "@/components/subscription-plans";
 import OrderDashboard from "@/components/order-dashboard";
 import Footer from "@/components/footer";
 import { wsClient } from "@/lib/websocket";
@@ -45,8 +44,6 @@ export default function Home() {
       <DeliveryForm userLocation={userLocation} />
       
       <LiveTracking />
-      
-      <SubscriptionPlans />
       
       <OrderDashboard />
       
