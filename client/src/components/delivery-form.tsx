@@ -34,10 +34,6 @@ export default function DeliveryForm({ userLocation }: DeliveryFormProps) {
       return;
     }
 
-    const deliveryFee = 15;
-    const serviceFee = 2.5;
-    const total = deliveryFee + serviceFee;
-
     const packageSizeText = packageSize === 'small' ? 'Small (< 5 lbs)' : packageSize === 'medium' ? 'Medium (5-20 lbs)' : packageSize === 'large' ? 'Large (20-50 lbs)' : 'Extra Large (50+ lbs)';
 
     const mapLink = `https://www.google.com/maps?q=${userLocation.lat},${userLocation.lng}`;
@@ -58,10 +54,7 @@ ${itemDescription}
 
 📏 *Package Size:* ${packageSizeText}
 
-${specialInstructions ? `📝 *Special Instructions:*\n${specialInstructions}\n\n` : ''}💰 *Fees:*
-• Delivery Fee: $${deliveryFee.toFixed(2)}
-• Service Fee: $${serviceFee.toFixed(2)}
-• Total: $${total.toFixed(2)}`;
+${specialInstructions ? `📝 *Special Instructions:*\n${specialInstructions}` : ''}`;
 
     const whatsappNumber = '96171294697';
     const encodedMessage = encodeURIComponent(message);
@@ -168,29 +161,6 @@ ${specialInstructions ? `📝 *Special Instructions:*\n${specialInstructions}\n\
                 className="bg-input border-border"
                 data-testid="input-special-instructions"
               />
-            </div>
-
-            <div className="bg-secondary bg-opacity-50 rounded-xl p-6 border border-border">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-muted-foreground">Delivery Fee</span>
-                <span className="font-semibold" data-testid="text-delivery-fee">
-                  $15.00
-                </span>
-              </div>
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-muted-foreground">Service Fee</span>
-                <span className="font-semibold" data-testid="text-service-fee">
-                  $2.50
-                </span>
-              </div>
-              <div className="border-t border-border pt-3 mt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold">Estimated Total</span>
-                  <span className="text-3xl font-black gradient-text" data-testid="text-total">
-                    $17.50
-                  </span>
-                </div>
-              </div>
             </div>
 
             <Button
